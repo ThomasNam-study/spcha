@@ -22,6 +22,7 @@
     <br/>
 
     <input type="hidden" id="board_idx" th:value="${board?.idx}"/>
+    <input type="hidden" id="board_create_date" th:value="${board?.createdDate}"/>
 
     <table class="table">
         <tr>
@@ -80,6 +81,79 @@
 
 
 <script src = "https://code.jquery.com/jquery-1.12.4.min.js"></script>
+
+<script th:if="!${board?.idx}">
+
+    $('#insert').click(function () {
+       var jsonData = JSON.stringify({
+           'title': $('#board_title').val(),
+           'subTitle': $('#board_sub_title').val(),
+           'content': $('#board_content').val(),
+           'boardType': $('#board_type option:selected').val()
+       });
+
+       $.ajax({
+           url: 'http://local:8081/api/boards',
+           type: "POST",
+           data: jsonData,
+           contentType: 'application/json',
+           dataType: "json",
+           success: function () {
+             alert ("저장 완료");
+             location.href = "/board/list";
+           },
+           error: function () {
+               alert("저장 실패");
+           }
+       });
+    });
+
+</script>
+
+<script th:if="${board?.idx}">
+
+    $('#update').click(function () {
+        var jsonData = JSON.stringify({
+            'title': $('#board_title').val(),
+            'subTitle': $('#board_sub_title').val(),
+            'content': $('#board_content').val(),
+            'boardType': $('#board_type option:selected').val(),
+            'createDate': $('#board_create_date').val(),
+        });
+
+        $.ajax({
+            url: 'http://local:8081/api/boards/' + $('#board_idx').val(),
+            type: "PUT",
+            data: jsonData,
+            contentType: 'application/json',
+            dataType: "json",
+            success: function () {
+                alert ("수정 완료");
+                location.href = "/board/list";
+            },
+            error: function () {
+                alert("수정 실패");
+            }
+        });
+    });
+
+    $('#delete').click(function () {
+
+        $.ajax({
+            url: 'http://local:8081/api/boards/' + $('#board_idx').val(),
+            type: "DELETE",
+            success: function () {
+                alert ("삭제 성공");
+                location.href = "/board/list";
+            },
+            error: function () {
+                alert("삭제 실패");
+            }
+        });
+
+    });
+
+</script>
 
 <!-- Latest compiled and minified JavaScript -->
 <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js" integrity="sha384-Tc5IQib027qvyjSMfHjOMaLkfuWVxZxUPnCJA7l2mCWNIpG9mGCD8wGNIcPD7Txa" crossorigin="anonymous"></script>
