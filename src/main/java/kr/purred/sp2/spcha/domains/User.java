@@ -1,5 +1,6 @@
 package kr.purred.sp2.spcha.domains;
 
+import kr.purred.sp2.spcha.enums.SocialType;
 import lombok.*;
 
 import javax.persistence.*;
@@ -28,6 +29,13 @@ public class User implements Serializable
 
 	@Column
 	private String email;
+
+	@Column
+	private String principal;
+
+	@Column
+	@Enumerated(EnumType.STRING)
+	private SocialType socialType;
 
 	@Column
 	private LocalDateTime createdDate;
