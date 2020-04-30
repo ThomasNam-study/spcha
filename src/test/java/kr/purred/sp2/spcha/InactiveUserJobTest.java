@@ -5,6 +5,7 @@ import kr.purred.sp2.spcha.repository.UserRepository;
 import org.junit.jupiter.api.Test;
 import org.springframework.batch.core.BatchStatus;
 import org.springframework.batch.core.JobExecution;
+import org.springframework.batch.core.JobParametersBuilder;
 import org.springframework.batch.test.JobLauncherTestUtils;
 import org.springframework.batch.test.context.SpringBatchTest;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -12,6 +13,7 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Import;
 
 import java.time.LocalDateTime;
+import java.util.Date;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -28,7 +30,9 @@ class InactiveUserJobTest
 	@Test
 	void changeInactiveTest () throws Exception
 	{
-		JobExecution jobExecution = jobLauncherTestUtils.launchJob ();
+		Date nowDate = new Date ();
+
+		JobExecution jobExecution = jobLauncherTestUtils.launchJob (new JobParametersBuilder ().addDate ("nowDate", nowDate).toJobParameters ());
 
 		assertThat (jobExecution.getStatus ()).isEqualTo (BatchStatus.COMPLETED);
 		assertThat (userRepository.findByUpdatedDateBeforeAndStatusEquals (LocalDateTime.now ().minusYears (1), UserStatus.ACTIVE).size ()).isEqualTo (0);
