@@ -5,6 +5,7 @@ import kr.purred.sp2.spcha.domains.User;
 import kr.purred.sp2.spcha.enums.BoardType;
 import kr.purred.sp2.spcha.repository.BoardRepository;
 import kr.purred.sp2.spcha.repository.UserRepository;
+import org.springframework.batch.core.configuration.annotation.EnableBatchProcessing;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
@@ -14,6 +15,7 @@ import java.time.LocalDateTime;
 import java.util.stream.IntStream;
 
 @SpringBootApplication
+@EnableBatchProcessing
 public class SpchaApplication
 {
 
