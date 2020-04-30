@@ -2,6 +2,7 @@ package kr.purred.sp2.spcha.jobs;
 
 import kr.purred.sp2.spcha.domains.User;
 import kr.purred.sp2.spcha.enums.UserStatus;
+import kr.purred.sp2.spcha.jobs.listener.InactiveJobListener;
 import kr.purred.sp2.spcha.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.batch.core.Job;
@@ -9,6 +10,9 @@ import org.springframework.batch.core.Step;
 import org.springframework.batch.core.configuration.annotation.JobBuilderFactory;
 import org.springframework.batch.core.configuration.annotation.StepBuilderFactory;
 import org.springframework.batch.core.configuration.annotation.StepScope;
+import org.springframework.batch.core.job.builder.FlowBuilder;
+import org.springframework.batch.core.job.flow.Flow;
+import org.springframework.batch.core.job.flow.FlowExecutionStatus;
 import org.springframework.batch.item.ItemProcessor;
 import org.springframework.batch.item.database.JpaItemWriter;
 import org.springframework.batch.item.database.JpaPagingItemReader;
@@ -16,6 +20,8 @@ import org.springframework.batch.item.support.ListItemReader;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.core.task.SimpleAsyncTaskExecutor;
+import org.springframework.core.task.TaskExecutor;
 
 import javax.persistence.EntityManagerFactory;
 import java.time.LocalDateTime;
@@ -36,22 +42,39 @@ public class InactiveUserJobConfig
 	private final EntityManagerFactory entityManagerFactory;
 
 	@Bean
-	public Job inactiveUserJob (JobBuilderFactory jobBuilderFactory, Step inactiveJobStep)
+	public Job inactiveUserJob (JobBuilderFactory jobBuilderFactory, Step inactiveJobStep, InactiveJobListener jobListener, Flow inactiveJobFlow)
 	{
 		return jobBuilderFactory.get ("inactiveUserJob")
 				.preventRestart ()      // 재실행을 막는다.
-				.start (inactiveJobStep)
+				.listener (jobListener)
+				// .start (inactiveJobStep)
+				.start (inactiveJobFlow)
+				.end ()
 				.build ();
 	}
 
 	@Bean
-	public Step inactiveJobStep (StepBuilderFactory stepBuilderFactory, ListItemReader<User> inactiveUserReader)
+	public Flow inactiveJobFlow (Step inactiveJobStep)
+	{
+		FlowBuilder<Flow> flowBuilder = new FlowBuilder<> ("inactiveJobFlow");
+
+		return flowBuilder.start (new InactiveJobExecutionDecider ())
+				.on (FlowExecutionStatus.FAILED.getName ()).end ()
+				.on (FlowExecutionStatus.COMPLETED.getName ())
+					.to (inactiveJobStep)
+					.end ();
+	}
+
+	@Bean
+	public Step inactiveJobStep (StepBuilderFactory stepBuilderFactory, ListItemReader<User> inactiveUserReader, TaskExecutor taskExecutor)
 	{
 		return stepBuilderFactory.get ("inactiveUserStep").<User, User> chunk (CHUNK_SIZE)
 				// .reader (inactiveUserJpaReader)
 				.reader (inactiveUserReader)
 				.processor (inactiveUserProcessor ())
 				.writer (inactiveUserWriter ())
+				.taskExecutor (taskExecutor)
+				.throttleLimit (2)      // 2 개의 Thread 로 실행시킨다.
 				.build ();
 	}
 
@@ -109,6 +132,12 @@ public class InactiveUserJobConfig
 		jpaItemWriter.setEntityManagerFactory (entityManagerFactory);
 
 		return jpaItemWriter;
+	}
+
+	@Bean
+	public TaskExecutor taskExecutor()
+	{
+		return new SimpleAsyncTaskExecutor ("Batch_Task");
 	}
 
 	/*private ItemWriter<User> inactiveUserWriter ()
